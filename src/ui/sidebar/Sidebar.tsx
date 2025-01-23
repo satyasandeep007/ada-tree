@@ -24,19 +24,33 @@ const Sidebar = () => {
       icon: randomIcon,
       label: `Project ${newId}`,
       slug: newSlug,
+      type: "project",
     };
 
     setNavConfig([...navConfig, newProject]);
     setEditingId(newSlug);
   };
 
+  const addNewDirectory = () => {
+    const newId = (navConfig.length + 1).toString();
+    const newSlug = formatSlug(`directory-${newId}`);
+
+    const newDirectory: NavItem = {
+      href: `#${newSlug}`,
+      icon: "",
+      label: `New Folder`,
+      slug: newSlug,
+      type: "directory",
+    };
+
+    setNavConfig([...navConfig, newDirectory]);
+    setEditingId(newSlug);
+  };
+
   const handleEdit = (oldSlug: string, newLabel: string) => {
     if (!newLabel.trim()) {
-      if (
-        navConfig
-          .find((item) => item.slug === oldSlug)
-          ?.label.startsWith("Project ")
-      ) {
+      const item = navConfig.find((item) => item.slug === oldSlug);
+      if (item?.label.startsWith("Project ") || item?.label === "New Folder") {
         setNavConfig(navConfig.filter((item) => item.slug !== oldSlug));
       }
       setEditingId(null);
@@ -44,7 +58,9 @@ const Sidebar = () => {
     }
 
     const newSlug = formatSlug(newLabel);
-    const newHref = `/project/${newSlug}`;
+    const item = navConfig.find((item) => item.slug === oldSlug);
+    const newHref =
+      item?.type === "directory" ? `#${newSlug}` : `/project/${newSlug}`;
 
     setNavConfig(
       navConfig.map((item) => {
@@ -61,7 +77,9 @@ const Sidebar = () => {
     );
     setEditingId(null);
 
-    router.push(newHref);
+    if (item?.type === "project") {
+      router.push(newHref);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, slug: string) => {
@@ -111,6 +129,7 @@ const Sidebar = () => {
           editingId={editingId}
           setEditingId={setEditingId}
           addNewProject={addNewProject}
+          addNewDirectory={addNewDirectory}
           handleEdit={handleEdit}
           handleKeyDown={handleKeyDown}
         />

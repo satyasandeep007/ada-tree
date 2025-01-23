@@ -3,4 +3,5 @@ export interface NavItem {
   icon: string;
   label: string;
   slug: string;
+  type: "project" | "directory";
 }

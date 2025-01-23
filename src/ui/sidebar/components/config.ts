@@ -6,12 +6,14 @@ export const initialNavConfig: NavItem[] = [
     icon: "🔑",
     label: "1",
     slug: "1",
+    type: "project",
   },
   {
     href: "/project/2",
     icon: "📝",
     label: "2",
     slug: "2",
+    type: "project",
   },
 ];
 
