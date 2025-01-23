@@ -82,7 +82,7 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="w-64 h-screen bg-[#f8f8f8] border-r border-gray-200 flex flex-col">
+    <aside className="w-64 h-screen bg-[#f9f9f7] border-r border-gray-200 flex flex-col">
       <div className="p-4 flex items-center gap-2">
         <div className="w-6 h-6 rounded-full bg-green-500"></div>
         <h1 className="font-medium text-gray-800">Satya&apos;s Workspace</h1>
