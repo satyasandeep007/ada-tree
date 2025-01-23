@@ -1,7 +1,51 @@
+"use client";
+
 import Link from "next/link";
 import { FiPlusSquare, FiFolder, FiMessageSquare } from "react-icons/fi";
+import { useState } from "react";
+
+interface NavItem {
+  href: string;
+  icon: string;
+  label: string;
+  slug: string;
+}
+
+const initialNavConfig: NavItem[] = [
+  {
+    href: "/project/1",
+    icon: "🔑",
+    label: "1",
+    slug: "1",
+  },
+  {
+    href: "/project/2",
+    icon: "📝",
+    label: "2",
+    slug: "2",
+  },
+];
+
+// Array of possible emoji icons
+const icons = ["📝", "🔑", "📚", "🎯", "💡", "🎨", "🔧", "📊", "🎮", "📱"];
 
 const Sidebar = () => {
+  const [navConfig, setNavConfig] = useState<NavItem[]>(initialNavConfig);
+
+  const addNewProject = () => {
+    const newId = (navConfig.length + 1).toString();
+    const randomIcon = icons[Math.floor(Math.random() * icons.length)];
+
+    const newProject: NavItem = {
+      href: `/project/${newId}`,
+      icon: randomIcon,
+      label: newId,
+      slug: newId,
+    };
+
+    setNavConfig([...navConfig, newProject]);
+  };
+
   return (
     <aside className="w-64 h-screen bg-[#f8f8f8] border-r border-gray-200 flex flex-col">
       {/* Workspace Header */}
@@ -34,25 +78,24 @@ const Sidebar = () => {
           <div className="px-3 py-2 text-sm font-semibold text-gray-600 flex items-center gap-2">
             Projects
             <div className="ml-auto flex items-center gap-2">
-              <FiPlusSquare className="w-5 h-5" />
+              <FiPlusSquare
+                className="w-5 h-5 cursor-pointer hover:text-gray-800"
+                onClick={addNewProject}
+              />
               <FiFolder className="w-5 h-5" />
             </div>
           </div>
           <div className="space-y-1">
-            <Link
-              href="/project/1"
-              className="w-full flex items-center px-3 py-2 text-gray-600 rounded-md hover:bg-gray-100"
-            >
-              <span className="w-5 h-5 mr-3">🔑</span>
-              <span>1</span>
-            </Link>
-            <Link
-              href="/project/2"
-              className="w-full flex items-center px-3 py-2 text-gray-600 rounded-md hover:bg-gray-100"
-            >
-              <span className="w-5 h-5 mr-3">📝</span>
-              <span>2</span>
-            </Link>
+            {navConfig.map((project) => (
+              <Link
+                key={project.href}
+                href={project.href}
+                className="w-full flex items-center px-3 py-2 text-gray-600 rounded-md hover:bg-gray-100"
+              >
+                <span className="w-5 h-5 mr-3">{project.icon}</span>
+                <span>{project.label}</span>
+              </Link>
+            ))}
           </div>
         </div>
       </nav>
