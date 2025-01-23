@@ -32,21 +32,27 @@ const Sidebar = () => {
         {/* Projects Section */}
         <div className="mt-8">
           <div className="px-3 py-2 text-sm font-semibold text-gray-600 flex items-center gap-2">
-            Private
+            Projects
             <div className="ml-auto flex items-center gap-2">
               <FiPlusSquare className="w-5 h-5" />
               <FiFolder className="w-5 h-5" />
             </div>
           </div>
           <div className="space-y-1">
-            <button className="w-full flex items-center px-3 py-2 text-gray-600 rounded-md hover:bg-gray-100">
+            <Link
+              href="/project/1"
+              className="w-full flex items-center px-3 py-2 text-gray-600 rounded-md hover:bg-gray-100"
+            >
               <span className="w-5 h-5 mr-3">🔑</span>
               <span>1</span>
-            </button>
-            <button className="w-full flex items-center px-3 py-2 text-gray-600 rounded-md hover:bg-gray-100">
+            </Link>
+            <Link
+              href="/project/2"
+              className="w-full flex items-center px-3 py-2 text-gray-600 rounded-md hover:bg-gray-100"
+            >
               <span className="w-5 h-5 mr-3">📝</span>
-              <span>Untitled</span>
-            </button>
+              <span>2</span>
+            </Link>
           </div>
         </div>
       </nav>
