@@ -3,86 +3,99 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FiPlusSquare, FiMessageSquare } from "react-icons/fi";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Projects from "./components/Projects";
 import { NavItem } from "@/@types/sidebar";
 import { formatSlug } from "./components/util";
-import { initialNavConfig, icons } from "./components/config";
+import { icons } from "./components/config";
 import { DropResult } from "@hello-pangea/dnd";
+import { fileTreeApi } from "@/services/api";
 
 const Sidebar = () => {
   const router = useRouter();
-  const [navConfig, setNavConfig] = useState<NavItem[]>(initialNavConfig);
+  const [navConfig, setNavConfig] = useState<NavItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const workspaceId = "satya"; // This could come from a context or prop
 
-  const addNewProject = () => {
-    const newId = (navConfig.length + 1).toString();
-    const randomIcon = icons[Math.floor(Math.random() * icons.length)];
-    const newSlug = formatSlug(`project-${newId}`);
+  useEffect(() => {
+    const fetchFileTree = async () => {
+      const tree = await fileTreeApi.getTree(workspaceId);
+      setNavConfig(tree);
+    };
+    fetchFileTree();
+  }, [workspaceId]);
 
-    const newProject: NavItem = {
-      href: `/project/${newSlug}`,
-      icon: randomIcon,
-      label: `Project ${newId}`,
-      slug: newSlug,
+  const addNewProject = async () => {
+    const order = navConfig.length;
+    const newNode: Omit<NavItem, "id"> = {
+      href: "#",
+      icon: icons[Math.floor(Math.random() * icons.length)],
+      label: `New Project`,
+      slug: formatSlug(`project-${order}`),
       type: "project",
-      order: navConfig.length,
+      order,
+      parentId: null,
     };
 
-    setNavConfig([...navConfig, newProject]);
-    setEditingId(newSlug);
+    try {
+      const createdNode = await fileTreeApi.createNode(workspaceId, newNode);
+      setNavConfig([...navConfig, createdNode]);
+      setEditingId(createdNode.slug);
+    } catch (error) {
+      console.error("Failed to create node:", error);
+    }
   };
 
-  const addNewDirectory = () => {
-    const newId = (navConfig.length + 1).toString();
-    const newSlug = formatSlug(`directory-${newId}`);
-
-    const newDirectory: NavItem = {
-      href: `#${newSlug}`,
-      icon: "",
-      label: `New Folder`,
-      slug: newSlug,
+  const addNewDirectory = async () => {
+    const order = navConfig.length;
+    const newNode: Omit<NavItem, "id"> = {
+      href: "#",
+      icon: "📁",
+      label: "New Folder",
+      slug: formatSlug(`directory-${order}`),
       type: "directory",
-      order: navConfig.length,
+      order,
+      parentId: null,
     };
 
-    setNavConfig([...navConfig, newDirectory]);
-    setEditingId(newSlug);
+    try {
+      const createdNode = await fileTreeApi.createNode(workspaceId, newNode);
+      setNavConfig([...navConfig, createdNode]);
+      setEditingId(createdNode.slug);
+    } catch (error) {
+      console.error("Failed to create node:", error);
+    }
   };
 
-  const handleEdit = (oldSlug: string, newLabel: string) => {
+  const handleEdit = async (oldSlug: string, newLabel: string) => {
+    const item = navConfig.find((item) => item.slug === oldSlug);
+    if (!item) return;
+
     if (!newLabel.trim()) {
-      const item = navConfig.find((item) => item.slug === oldSlug);
-      if (item?.label.startsWith("Project ") || item?.label === "New Folder") {
-        setNavConfig(navConfig.filter((item) => item.slug !== oldSlug));
+      if (item.label === "New Project" || item.label === "New Folder") {
+        await fileTreeApi.deleteNode(item.id!);
+        setNavConfig(navConfig.filter((i) => i.slug !== oldSlug));
       }
       setEditingId(null);
       return;
     }
 
     const newSlug = formatSlug(newLabel);
-    const item = navConfig.find((item) => item.slug === oldSlug);
-    const newHref =
-      item?.type === "directory" ? `#${newSlug}` : `/project/${newSlug}`;
+    const updates: Partial<NavItem> = {
+      label: newLabel,
+      slug: newSlug,
+      href: item.type === "directory" ? `#${newSlug}` : `/project/${newSlug}`,
+    };
 
-    setNavConfig(
-      navConfig.map((item) => {
-        if (item.slug === oldSlug) {
-          return {
-            ...item,
-            label: newLabel,
-            slug: newSlug,
-            href: newHref,
-          };
-        }
-        return item;
-      })
-    );
-    setEditingId(null);
-
-    if (item?.type === "project") {
-      router.push(newHref);
+    try {
+      await fileTreeApi.updateNode(item.id!, updates);
+      setNavConfig(
+        navConfig.map((i) => (i.slug === oldSlug ? { ...i, ...updates } : i))
+      );
+    } catch (error) {
+      console.error("Failed to update node:", error);
     }
+    setEditingId(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, slug: string) => {
