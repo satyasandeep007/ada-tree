@@ -11,6 +11,6 @@ export const transformFileNodeToNavItem = (node: any): NavItem => {
     type: node.type === "file" ? "file" : "folder",
     parentId: node.parentId === "null" ? null : node.parentId,
     order: node.order,
-    isOpen: false,
+    isOpen: node.isOpen || false,
   };
 };

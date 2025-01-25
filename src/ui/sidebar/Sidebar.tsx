@@ -153,6 +153,15 @@ const Sidebar = () => {
     }
   };
 
+  const handleToggleFolder = async (nodeId: string, isOpen: boolean) => {
+    try {
+      await fileTreeApi.toggleFolderState(nodeId, isOpen);
+      await fetchFileTree();
+    } catch (error) {
+      console.error("Failed to toggle folder state:", error);
+    }
+  };
+
   return (
     <aside className="w-64 h-screen bg-[#f9f9f7] border-r border-gray-200 flex flex-col">
       <div className="p-4 flex items-center gap-2">
@@ -187,6 +196,7 @@ const Sidebar = () => {
           handleEdit={handleEdit}
           handleKeyDown={handleKeyDown}
           onDragEnd={handleDragEnd}
+          onToggleFolder={handleToggleFolder}
         />
       </nav>
     </aside>

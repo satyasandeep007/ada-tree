@@ -1,5 +1,5 @@
 import { NavItem } from "@/@types/sidebar";
-import { FiFolder, FiEdit2 } from "react-icons/fi";
+import { FiEdit2, FiFolderMinus, FiFolderPlus } from "react-icons/fi";
 import Link from "next/link";
 import { DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 
@@ -12,6 +12,7 @@ interface ProjectItemProps {
   isDragging?: boolean;
   level?: number;
   dragHandleProps?: DraggableProvidedDragHandleProps | null;
+  onToggleFolder?: (id: string, isOpen: boolean) => void;
 }
 
 export const ProjectItem = ({
@@ -22,6 +23,7 @@ export const ProjectItem = ({
   handleKeyDown,
   isDragging,
   dragHandleProps,
+  onToggleFolder,
 }: ProjectItemProps) => {
   return (
     <div
@@ -36,7 +38,15 @@ export const ProjectItem = ({
         {editingId === item.id ? (
           <>
             <span className="w-5 h-5 mr-3">
-              {item.type === "folder" ? <FiFolder /> : item.icon}
+              {item.type === "folder" ? (
+                item.isOpen ? (
+                  <FiFolderMinus />
+                ) : (
+                  <FiFolderPlus />
+                )
+              ) : (
+                item.icon
+              )}
             </span>
             <input
               type="text"
@@ -52,8 +62,14 @@ export const ProjectItem = ({
           <>
             {item.type === "folder" ? (
               <div className="flex-1 flex items-center">
-                <span className="w-5 h-5 mr-3">
-                  <FiFolder />
+                <span
+                  className="w-5 h-5 mr-3 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFolder?.(item.id!, !item.isOpen);
+                  }}
+                >
+                  {item.isOpen ? <FiFolderMinus /> : <FiFolderPlus />}
                 </span>
                 <span>{item.name}</span>
               </div>
@@ -66,7 +82,7 @@ export const ProjectItem = ({
           </>
         )}
       </div>
-      {!editingId && (
+      {!editingId && item.id && (
         <FiEdit2
           className="w-4 h-4 opacity-0 group-hover:opacity-100 cursor-pointer hover:text-gray-800 transition-opacity"
           onClick={() => setEditingId(item.id)}

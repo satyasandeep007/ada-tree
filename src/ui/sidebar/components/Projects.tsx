@@ -20,6 +20,7 @@ interface ProjectsProps {
   handleEdit: (slug: string, newLabel: string) => void;
   handleKeyDown: (e: React.KeyboardEvent, slug: string) => void;
   onDragEnd: (result: DropResult) => void;
+  onToggleFolder: (id: string, isOpen: boolean) => void;
 }
 
 const Projects = ({
@@ -31,9 +32,13 @@ const Projects = ({
   handleEdit,
   handleKeyDown,
   onDragEnd,
+  onToggleFolder,
 }: ProjectsProps) => {
   const organizeItems = (items: NavItem[]) => {
     const itemsByParent: { [key: string]: NavItem[] } = {};
+
+    // Debug log
+    console.log("Organizing items:", items);
 
     items
       .sort((a, b) => a.order - b.order)
@@ -45,6 +50,8 @@ const Projects = ({
         itemsByParent[parentId].push(item);
       });
 
+    // Debug log
+    console.log("Organized items:", itemsByParent);
     return itemsByParent;
   };
 
@@ -53,9 +60,13 @@ const Projects = ({
     parentId: string = "root",
     level = 0
   ) => {
+    // Debug log
+    console.log(`Rendering items for parent ${parentId}:`, items);
+    console.log(`Current level: ${level}`);
+
     return (
       <Droppable droppableId={parentId}>
-        {(provided: any, snapshot: any) => (
+        {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
@@ -64,14 +75,11 @@ const Projects = ({
             }`}
           >
             {items.map((item, index) => {
-              const childItems = organizedItems[item.slug] || [];
+              const childItems = organizedItems[item.id!] || [];
+              console.log(`Child items for ${item.name}:`, childItems); // Debug log
 
               return (
-                <Draggable
-                  key={item.slug}
-                  draggableId={item.slug}
-                  index={index}
-                >
+                <Draggable key={item.id} draggableId={item.id!} index={index}>
                   {(provided, snapshot) => (
                     <div>
                       <div
@@ -88,9 +96,10 @@ const Projects = ({
                           isDragging={snapshot.isDragging}
                           level={level}
                           dragHandleProps={provided.dragHandleProps}
+                          onToggleFolder={onToggleFolder}
                         />
                       </div>
-                      {item.type === "folder" && (
+                      {item.type === "folder" && item.isOpen && (
                         <div
                           className={`ml-4 ${
                             snapshot.isDragging ? "hidden" : ""
@@ -98,12 +107,12 @@ const Projects = ({
                         >
                           {renderDraggableItems(
                             childItems,
-                            item.slug,
+                            item.id!,
                             level + 1
                           )}
                         </div>
                       )}
-                      {snapshot.isDragging ? null : provided?.placeholder}
+                      {snapshot.isDragging ? null : provided.placeholder}
                     </div>
                   )}
                 </Draggable>
@@ -118,6 +127,9 @@ const Projects = ({
 
   const organizedItems = organizeItems(navConfig);
   const rootItems = organizedItems["root"] || [];
+
+  // Debug log
+  console.log("Root items:", rootItems);
 
   return (
     <div className="mt-8">
