@@ -7,6 +7,8 @@ export const initialNavConfig: NavItem[] = [
     label: "1",
     slug: "1",
     type: "project",
+    order: 0,
+    parentId: null,
   },
   {
     href: "/project/2",
@@ -14,6 +16,8 @@ export const initialNavConfig: NavItem[] = [
     label: "2",
     slug: "2",
     type: "project",
+    order: 1,
+    parentId: null,
   },
 ];
 

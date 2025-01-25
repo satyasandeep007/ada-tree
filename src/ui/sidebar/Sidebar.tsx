@@ -8,6 +8,7 @@ import Projects from "./components/Projects";
 import { NavItem } from "@/@types/sidebar";
 import { formatSlug } from "./components/util";
 import { initialNavConfig, icons } from "./components/config";
+import { DragEndEvent } from "@dnd-kit/core";
 
 const Sidebar = () => {
   const router = useRouter();
@@ -25,6 +26,7 @@ const Sidebar = () => {
       label: `Project ${newId}`,
       slug: newSlug,
       type: "project",
+      order: navConfig.length,
     };
 
     setNavConfig([...navConfig, newProject]);
@@ -41,6 +43,7 @@ const Sidebar = () => {
       label: `New Folder`,
       slug: newSlug,
       type: "directory",
+      order: navConfig.length,
     };
 
     setNavConfig([...navConfig, newDirectory]);
@@ -99,6 +102,56 @@ const Sidebar = () => {
     }
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const activeItem = navConfig.find((item) => item.slug === active.id);
+    const overItem = navConfig.find((item) => item.slug === over.id);
+
+    if (!activeItem || !overItem) return;
+
+    const newNavConfig = [...navConfig];
+    const activeIndex = newNavConfig.findIndex(
+      (item) => item.slug === active.id
+    );
+    const overIndex = newNavConfig.findIndex((item) => item.slug === over.id);
+
+    if (activeItem.type === "directory") {
+      const isChild = (parentId: string | null | undefined): boolean => {
+        if (!parentId) return false;
+        if (parentId === activeItem.slug) return true;
+        const parent = newNavConfig.find((item) => item.slug === parentId);
+        return parent ? isChild(parent.parentId) : false;
+      };
+
+      if (isChild(overItem.parentId)) return;
+    }
+
+    if (overItem.type === "directory") {
+      newNavConfig[activeIndex] = {
+        ...activeItem,
+        parentId: overItem.slug,
+      };
+    } else {
+      newNavConfig[activeIndex] = {
+        ...activeItem,
+        parentId: overItem.parentId,
+      };
+    }
+
+    const [movedItem] = newNavConfig.splice(activeIndex, 1);
+    newNavConfig.splice(overIndex, 0, movedItem);
+
+    const updatedNavConfig = newNavConfig.map((item, index) => ({
+      ...item,
+      order: index,
+    }));
+
+    setNavConfig(updatedNavConfig);
+  };
+
   return (
     <aside className="w-64 h-screen bg-[#f9f9f7] border-r border-gray-200 flex flex-col">
       <div className="p-4 flex items-center gap-2">
@@ -132,6 +185,7 @@ const Sidebar = () => {
           addNewDirectory={addNewDirectory}
           handleEdit={handleEdit}
           handleKeyDown={handleKeyDown}
+          onDragEnd={handleDragEnd}
         />
       </nav>
     </aside>

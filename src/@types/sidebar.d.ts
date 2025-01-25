@@ -4,4 +4,6 @@ export interface NavItem {
   label: string;
   slug: string;
   type: "project" | "directory";
+  parentId?: string | null;
+  order: number;
 }
