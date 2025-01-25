@@ -8,7 +8,7 @@ import Projects from "./components/Projects";
 import { NavItem } from "@/@types/sidebar";
 import { formatSlug } from "./components/util";
 import { initialNavConfig, icons } from "./components/config";
-import { DragEndEvent } from "@dnd-kit/core";
+import { DropResult } from "@hello-pangea/dnd";
 
 const Sidebar = () => {
   const router = useRouter();
@@ -102,47 +102,57 @@ const Sidebar = () => {
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+  const handleDragEnd = (result: DropResult) => {
+    const { destination, draggableId } = result;
 
-    if (!over || active.id === over.id) return;
+    if (!destination) return;
 
-    const activeItem = navConfig.find((item) => item.slug === active.id);
-    const overItem = navConfig.find((item) => item.slug === over.id);
+    const draggedItem = navConfig.find((item) => item.slug === draggableId);
+    if (!draggedItem) return;
 
-    if (!activeItem || !overItem) return;
+    let newNavConfig = [...navConfig];
 
-    const newNavConfig = [...navConfig];
-    const activeIndex = newNavConfig.findIndex(
-      (item) => item.slug === active.id
+    const targetId = destination.droppableId;
+    const targetIsDirectory =
+      targetId !== "root" &&
+      newNavConfig.find((item) => item.slug === targetId)?.type === "directory";
+
+    if (draggedItem.type === "directory") {
+      const isChild = (itemId: string, targetParentId: string): boolean => {
+        if (itemId === targetParentId) return true;
+        const parent = newNavConfig.find(
+          (item) => item.slug === targetParentId
+        )?.parentId;
+        return parent ? isChild(itemId, parent) : false;
+      };
+
+      if (targetId !== "root" && isChild(draggedItem.slug, targetId)) {
+        return;
+      }
+    }
+
+    newNavConfig = newNavConfig.filter(
+      (item) => item.slug !== draggedItem.slug
     );
-    const overIndex = newNavConfig.findIndex((item) => item.slug === over.id);
 
-    if (activeItem.type === "directory") {
-      const isChild = (parentId: string | null | undefined): boolean => {
-        if (!parentId) return false;
-        if (parentId === activeItem.slug) return true;
-        const parent = newNavConfig.find((item) => item.slug === parentId);
-        return parent ? isChild(parent.parentId) : false;
-      };
+    const updatedItem = {
+      ...draggedItem,
+      parentId: targetIsDirectory ? targetId : null,
+    };
 
-      if (isChild(overItem.parentId)) return;
-    }
+    const itemsAtSameLevel = newNavConfig.filter((item) =>
+      targetIsDirectory ? item.parentId === targetId : item.parentId === null
+    );
 
-    if (overItem.type === "directory") {
-      newNavConfig[activeIndex] = {
-        ...activeItem,
-        parentId: overItem.slug,
-      };
+    if (destination.index === 0) {
+      newNavConfig = [updatedItem, ...newNavConfig];
     } else {
-      newNavConfig[activeIndex] = {
-        ...activeItem,
-        parentId: overItem.parentId,
-      };
+      const insertAfterItem = itemsAtSameLevel[destination.index - 1];
+      const insertIndex =
+        newNavConfig.findIndex((item) => item.slug === insertAfterItem?.slug) +
+        1;
+      newNavConfig.splice(insertIndex, 0, updatedItem);
     }
-
-    const [movedItem] = newNavConfig.splice(activeIndex, 1);
-    newNavConfig.splice(overIndex, 0, movedItem);
 
     const updatedNavConfig = newNavConfig.map((item, index) => ({
       ...item,

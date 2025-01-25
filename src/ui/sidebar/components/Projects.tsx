@@ -1,22 +1,26 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { NavItem } from "@/@types/sidebar";
 import { FiPlusSquare, FiFolder } from "react-icons/fi";
 import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd";
 import { ProjectItem } from "./ProjectItem";
-import { useState } from "react";
+
+interface ProjectsProps {
+  navConfig: NavItem[];
+  editingId: string | null;
+  setEditingId: (id: string | null) => void;
+  addNewProject: () => void;
+  addNewDirectory: () => void;
+  handleEdit: (slug: string, newLabel: string) => void;
+  handleKeyDown: (e: React.KeyboardEvent, slug: string) => void;
+  onDragEnd: (result: DropResult) => void;
+}
 
 const Projects = ({
   navConfig,
@@ -27,75 +31,93 @@ const Projects = ({
   handleEdit,
   handleKeyDown,
   onDragEnd,
-}: {
-  navConfig: NavItem[];
-  editingId: string | null;
-  setEditingId: (id: string | null) => void;
-  addNewProject: () => void;
-  addNewDirectory: () => void;
-  handleEdit: (slug: string, newLabel: string) => void;
-  handleKeyDown: (e: React.KeyboardEvent, slug: string) => void;
-  onDragEnd: (event: DragEndEvent) => void;
-}) => {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null);
-    onDragEnd(event);
-  };
-
-  const items = navConfig.map((item) => item.slug);
-  const activeItem = navConfig.find((item) => item.slug === activeId);
-
+}: ProjectsProps) => {
   const organizeItems = (items: NavItem[]) => {
     const itemsByParent: { [key: string]: NavItem[] } = {};
 
-    items.forEach((item) => {
-      const parentId = item.parentId || "root";
-      if (!itemsByParent[parentId]) {
-        itemsByParent[parentId] = [];
-      }
-      itemsByParent[parentId].push(item);
-    });
+    items
+      .sort((a, b) => a.order - b.order)
+      .forEach((item) => {
+        const parentId = item.parentId || "root";
+        if (!itemsByParent[parentId]) {
+          itemsByParent[parentId] = [];
+        }
+        itemsByParent[parentId].push(item);
+      });
 
     return itemsByParent;
   };
 
+  const renderDraggableItems = (
+    items: NavItem[],
+    parentId: string = "root",
+    level = 0
+  ) => {
+    return (
+      <Droppable droppableId={parentId}>
+        {(provided: any, snapshot: any) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={`space-y-1 min-h-[4px] transition-colors duration-200 ${
+              snapshot.isDraggingOver ? "bg-gray-100 rounded-md" : ""
+            }`}
+          >
+            {items.map((item, index) => {
+              const childItems = organizedItems[item.slug] || [];
+
+              return (
+                <Draggable
+                  key={item.slug}
+                  draggableId={item.slug}
+                  index={index}
+                >
+                  {(provided, snapshot) => (
+                    <div>
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={snapshot.isDragging ? "opacity-50" : ""}
+                      >
+                        <ProjectItem
+                          item={item}
+                          editingId={editingId}
+                          setEditingId={setEditingId}
+                          handleEdit={handleEdit}
+                          handleKeyDown={handleKeyDown}
+                          isDragging={snapshot.isDragging}
+                          level={level}
+                          dragHandleProps={provided.dragHandleProps}
+                        />
+                      </div>
+                      {item.type === "directory" && (
+                        <div
+                          className={`ml-4 ${
+                            snapshot.isDragging ? "hidden" : ""
+                          }`}
+                        >
+                          {renderDraggableItems(
+                            childItems,
+                            item.slug,
+                            level + 1
+                          )}
+                        </div>
+                      )}
+                      {snapshot.isDragging ? null : provided?.placeholder}
+                    </div>
+                  )}
+                </Draggable>
+              );
+            })}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+    );
+  };
+
   const organizedItems = organizeItems(navConfig);
   const rootItems = organizedItems["root"] || [];
-
-  const renderItems = (items: NavItem[], level = 0) => {
-    return items.map((item) => {
-      const childItems = organizedItems[item.slug] || [];
-
-      return (
-        <div key={item.slug}>
-          <ProjectItem
-            item={item}
-            editingId={editingId}
-            setEditingId={setEditingId}
-            handleEdit={handleEdit}
-            handleKeyDown={handleKeyDown}
-            level={level}
-          />
-          {item.type === "directory" && childItems.length > 0 && (
-            <div className="ml-4">{renderItems(childItems, level + 1)}</div>
-          )}
-        </div>
-      );
-    });
-  };
 
   return (
     <div className="mt-8">
@@ -114,50 +136,9 @@ const Projects = ({
           />
         </div>
       </div>
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragOver={(event) => {
-          const { active, over } = event;
-          if (!over) return;
-
-          const activeItem = navConfig.find((item) => item.slug === active.id);
-          const overItem = navConfig.find((item) => item.slug === over.id);
-
-          if (!activeItem || !overItem) return;
-
-          if (activeItem.type === "directory") {
-            const isChild = (parentId: string | null | undefined): boolean => {
-              if (!parentId) return false;
-              if (parentId === activeItem.slug) return true;
-              const parent = navConfig.find((item) => item.slug === parentId);
-              return parent ? isChild(parent.parentId) : false;
-            };
-
-            if (isChild(overItem.parentId)) return;
-          }
-        }}
-      >
-        <SortableContext items={items} strategy={verticalListSortingStrategy}>
-          <div className="space-y-1">{renderItems(rootItems)}</div>
-        </SortableContext>
-        <DragOverlay>
-          {activeId && activeItem && (
-            <div className="bg-white shadow-lg rounded-md">
-              <ProjectItem
-                item={activeItem}
-                editingId={editingId}
-                setEditingId={setEditingId}
-                handleEdit={handleEdit}
-                handleKeyDown={handleKeyDown}
-                isDragging
-                level={0}
-              />
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
+      <DragDropContext onDragEnd={onDragEnd}>
+        {renderDraggableItems(rootItems)}
+      </DragDropContext>
     </div>
   );
 };
