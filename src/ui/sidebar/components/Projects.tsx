@@ -90,7 +90,7 @@ const Projects = ({
                           dragHandleProps={provided.dragHandleProps}
                         />
                       </div>
-                      {item.type === "directory" && (
+                      {item.type === "folder" && (
                         <div
                           className={`ml-4 ${
                             snapshot.isDragging ? "hidden" : ""

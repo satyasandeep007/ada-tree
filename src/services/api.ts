@@ -51,4 +51,25 @@ export const fileTreeApi = {
       body: JSON.stringify({ isOpen }),
     });
   },
+
+  async updateNodeOrderAndParent(
+    nodeId: string,
+    updates: { order: number; parentId: string | null }
+  ): Promise<void> {
+    await fetch(`${API_BASE_URL}/nodes/${nodeId}/move`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+  },
+
+  async batchUpdateOrder(
+    updates: { id: string; order: number }[]
+  ): Promise<void> {
+    await fetch(`${API_BASE_URL}/nodes/batch-update-order`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updates }),
+    });
+  },
 };

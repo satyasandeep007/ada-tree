@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FiPlusSquare, FiMessageSquare } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import Projects from "./components/Projects";
@@ -12,16 +11,16 @@ import { DropResult } from "@hello-pangea/dnd";
 import { fileTreeApi } from "@/services/api";
 
 const Sidebar = () => {
-  const router = useRouter();
   const [navConfig, setNavConfig] = useState<NavItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const workspaceId = "satya"; // This could come from a context or prop
+  const workspaceId = "satya";
+
+  const fetchFileTree = async () => {
+    const tree = await fileTreeApi.getTree(workspaceId);
+    setNavConfig(tree);
+  };
 
   useEffect(() => {
-    const fetchFileTree = async () => {
-      const tree = await fileTreeApi.getTree(workspaceId);
-      setNavConfig(tree);
-    };
     fetchFileTree();
   }, [workspaceId]);
 
@@ -30,17 +29,17 @@ const Sidebar = () => {
     const newNode: Omit<NavItem, "id"> = {
       href: "#",
       icon: icons[Math.floor(Math.random() * icons.length)],
-      label: `New Project`,
+      name: "New Project",
       slug: formatSlug(`project-${order}`),
-      type: "project",
+      type: "file",
       order,
       parentId: null,
     };
 
     try {
       const createdNode = await fileTreeApi.createNode(workspaceId, newNode);
-      setNavConfig([...navConfig, createdNode]);
-      setEditingId(createdNode.slug);
+      await fetchFileTree();
+      setEditingId(createdNode.id!);
     } catch (error) {
       console.error("Failed to create node:", error);
     }
@@ -51,17 +50,17 @@ const Sidebar = () => {
     const newNode: Omit<NavItem, "id"> = {
       href: "#",
       icon: "📁",
-      label: "New Folder",
+      name: "New Folder",
       slug: formatSlug(`directory-${order}`),
-      type: "directory",
+      type: "folder",
       order,
       parentId: null,
     };
 
     try {
       const createdNode = await fileTreeApi.createNode(workspaceId, newNode);
-      setNavConfig([...navConfig, createdNode]);
-      setEditingId(createdNode.slug);
+      await fetchFileTree();
+      setEditingId(createdNode.id!);
     } catch (error) {
       console.error("Failed to create node:", error);
     }
@@ -71,31 +70,22 @@ const Sidebar = () => {
     const item = navConfig.find((item) => item.slug === oldSlug);
     if (!item) return;
 
-    if (!newLabel.trim()) {
-      if (item.label === "New Project" || item.label === "New Folder") {
-        await fileTreeApi.deleteNode(item.id!);
-        setNavConfig(navConfig.filter((i) => i.slug !== oldSlug));
-      }
-      setEditingId(null);
-      return;
-    }
-
-    const newSlug = formatSlug(newLabel);
-    const updates: Partial<NavItem> = {
-      label: newLabel,
-      slug: newSlug,
-      href: item.type === "directory" ? `#${newSlug}` : `/project/${newSlug}`,
-    };
-
     try {
-      await fileTreeApi.updateNode(item.id!, updates);
-      setNavConfig(
-        navConfig.map((i) => (i.slug === oldSlug ? { ...i, ...updates } : i))
-      );
+      if (!newLabel.trim()) {
+        if (item.name === "New Project" || item.name === "New Folder") {
+          await fileTreeApi.deleteNode(item.id!);
+          await fetchFileTree();
+        }
+        setEditingId(null);
+        return;
+      }
+
+      await fileTreeApi.updateNode(item.id!, { name: newLabel });
+      await fetchFileTree();
+      setEditingId(null);
     } catch (error) {
       console.error("Failed to update node:", error);
     }
-    setEditingId(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, slug: string) => {
@@ -104,75 +94,63 @@ const Sidebar = () => {
       handleEdit(slug, target.value);
     }
     if (e.key === "Escape") {
-      if (
-        navConfig
-          .find((item) => item.slug === slug)
-          ?.label.startsWith("Project ")
-      ) {
-        setNavConfig(navConfig.filter((item) => item.slug !== slug));
+      const item = navConfig.find((item) => item.slug === slug);
+      if (item?.name === "New Project" || item?.name === "New Folder") {
+        fileTreeApi
+          .deleteNode(item.id!)
+          .then(() => fetchFileTree())
+          .catch(console.error);
       }
       setEditingId(null);
     }
   };
 
-  const handleDragEnd = (result: DropResult) => {
+  const handleDragEnd = async (result: DropResult) => {
     const { destination, draggableId } = result;
 
     if (!destination) return;
 
     const draggedItem = navConfig.find((item) => item.slug === draggableId);
-    if (!draggedItem) return;
+    if (!draggedItem || !draggedItem.id) return;
 
-    let newNavConfig = [...navConfig];
+    const previousConfig = [...navConfig];
 
-    const targetId = destination.droppableId;
-    const targetIsDirectory =
-      targetId !== "root" &&
-      newNavConfig.find((item) => item.slug === targetId)?.type === "directory";
+    try {
+      const itemsAtSameLevel = navConfig.filter((item) =>
+        destination.droppableId === "root"
+          ? item.parentId === null
+          : item.parentId === destination.droppableId
+      );
 
-    if (draggedItem.type === "directory") {
-      const isChild = (itemId: string, targetParentId: string): boolean => {
-        if (itemId === targetParentId) return true;
-        const parent = newNavConfig.find(
-          (item) => item.slug === targetParentId
-        )?.parentId;
-        return parent ? isChild(itemId, parent) : false;
-      };
+      const filteredItems = itemsAtSameLevel.filter(
+        (item) => item.id !== draggedItem.id
+      );
 
-      if (targetId !== "root" && isChild(draggedItem.slug, targetId)) {
-        return;
+      filteredItems.splice(destination.index, 0, draggedItem);
+      console.log("filteredItems", filteredItems);
+
+      const orderUpdates = filteredItems.map((item, index) => ({
+        id: item.id!,
+        order: index,
+      }));
+
+      console.log("orderUpdates", orderUpdates);
+
+      await fileTreeApi.updateNodeOrderAndParent(draggedItem.id, {
+        order: destination.index,
+        parentId:
+          destination.droppableId === "root" ? null : destination.droppableId,
+      });
+
+      if (orderUpdates.length > 0) {
+        await fileTreeApi.batchUpdateOrder(orderUpdates);
       }
+
+      await fetchFileTree();
+    } catch (error) {
+      console.error("Failed to update node positions:", error);
+      setNavConfig(previousConfig);
     }
-
-    newNavConfig = newNavConfig.filter(
-      (item) => item.slug !== draggedItem.slug
-    );
-
-    const updatedItem = {
-      ...draggedItem,
-      parentId: targetIsDirectory ? targetId : null,
-    };
-
-    const itemsAtSameLevel = newNavConfig.filter((item) =>
-      targetIsDirectory ? item.parentId === targetId : item.parentId === null
-    );
-
-    if (destination.index === 0) {
-      newNavConfig = [updatedItem, ...newNavConfig];
-    } else {
-      const insertAfterItem = itemsAtSameLevel[destination.index - 1];
-      const insertIndex =
-        newNavConfig.findIndex((item) => item.slug === insertAfterItem?.slug) +
-        1;
-      newNavConfig.splice(insertIndex, 0, updatedItem);
-    }
-
-    const updatedNavConfig = newNavConfig.map((item, index) => ({
-      ...item,
-      order: index,
-    }));
-
-    setNavConfig(updatedNavConfig);
   };
 
   return (

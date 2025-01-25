@@ -2,9 +2,9 @@ export interface NavItem {
   id?: string;
   href: string;
   icon: string;
-  label: string;
+  name: string;
   slug: string;
-  type: "project" | "directory";
+  type: "file" | "folder";
   parentId: string | null;
   order: number;
   isOpen?: boolean;
