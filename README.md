@@ -1,4 +1,4 @@
-# Adaline Task
+# Ada Tree
 
 ## Getting Started
 
