@@ -1,10 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NavItem } from "@/@types/sidebar";
 
-export const transformFileNodeToNavItem = (node: any): NavItem => {
+export const transformFileNodeToNavItem = (
+  node: any,
+  workspaceId: string
+): NavItem => {
   return {
     id: node.id,
-    href: node.type === "file" ? `/project/${node.id}` : `#${node.id}`,
+    href:
+      node.type === "file"
+        ? `/${workspaceId}/project/${node.id}`
+        : `/${workspaceId}/project`,
     icon: node.icon || (node.type === "file" ? "📝" : "📁"),
     name: node.name,
     slug: node.id,

@@ -14,7 +14,7 @@ class FileTreeWebSocket {
   private isConnected = false;
   private reconnectAttempt = 0;
   private readonly maxReconnectAttempts = 5;
-  private workspaceId: string | null = null;
+  private workspaceId: string = "";
   private onUpdateCallback: ((nodes: NavItem[]) => void) | null = null;
   private currentNodes: NavItem[] | null = null;
   private skipNextUpdate = false;
@@ -61,7 +61,9 @@ class FileTreeWebSocket {
         this.onUpdateCallback &&
         !this.skipNextUpdate
       ) {
-        const transformedNodes = data.nodes.map(transformFileNodeToNavItem);
+        const transformedNodes = data.nodes.map((node) =>
+          transformFileNodeToNavItem(node, this.workspaceId)
+        );
         this.currentNodes = transformedNodes;
         this.onUpdateCallback(transformedNodes);
       }
@@ -99,7 +101,10 @@ class FileTreeWebSocket {
           const data = JSON.parse(event.data);
           if (data.type === "nodeCreated") {
             this.ws?.removeEventListener("message", messageHandler);
-            const createdNode = transformFileNodeToNavItem(data.payload);
+            const createdNode = transformFileNodeToNavItem(
+              data.payload,
+              this.workspaceId
+            );
             if (this.currentNodes && this.onUpdateCallback) {
               const updatedNodes = this.currentNodes.map((n) =>
                 n.id === tempId ? createdNode : n

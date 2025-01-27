@@ -3,7 +3,14 @@
 
 import { NavItem, ProjectsProps } from "@/@types/sidebar";
 import { FiFile, FiFolder } from "react-icons/fi";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DroppableProvided,
+  DraggableProvided,
+  DraggableStateSnapshot,
+} from "@hello-pangea/dnd";
 import { ProjectItem } from "./ProjectItem";
 
 const organizeItems = (items: NavItem[]) => {
@@ -40,7 +47,7 @@ const Projects = ({
   ) => {
     return (
       <Droppable droppableId={parentId}>
-        {(provided: any, snapshot: any) => (
+        {(provided: DroppableProvided, snapshot: any) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
@@ -53,7 +60,10 @@ const Projects = ({
 
               return (
                 <Draggable key={item.id} draggableId={item.id!} index={index}>
-                  {(provided, snapshot) => (
+                  {(
+                    provided: DraggableProvided,
+                    snapshot: DraggableStateSnapshot
+                  ) => (
                     <div>
                       <div
                         ref={provided.innerRef}
@@ -85,7 +95,6 @@ const Projects = ({
                           )}
                         </div>
                       )}
-                      {snapshot.isDragging ? null : provided.placeholder}
                     </div>
                   )}
                 </Draggable>

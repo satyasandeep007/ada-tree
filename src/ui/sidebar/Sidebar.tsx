@@ -9,11 +9,13 @@ import { formatSlug } from "./components/util";
 import { icons } from "./components/config";
 import { DropResult } from "@hello-pangea/dnd";
 import { fileTreeApi } from "@/services/api";
+import { useParams } from "next/navigation";
 
 const Sidebar = () => {
+  const params = useParams();
+  const workspaceId = params.workspace as string;
   const [navConfig, setNavConfig] = useState<NavItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const workspaceId = "satya";
 
   useEffect(() => {
     const unsubscribe = fileTreeApi.subscribeToTree(workspaceId, (nodes) => {
@@ -134,7 +136,9 @@ const Sidebar = () => {
     <aside className="w-64 h-screen bg-[#f9f9f7] border-r border-gray-200 flex flex-col">
       <div className="p-4 flex items-center gap-2">
         <div className="w-6 h-6 rounded-full bg-green-500"></div>
-        <h1 className="font-medium text-gray-800">Satya&apos;s Workspace</h1>
+        <h1 className="font-medium text-gray-800">
+          {workspaceId}&apos;s Workspace
+        </h1>
       </div>
 
       <nav className="flex-1 px-2 py-4">
