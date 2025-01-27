@@ -1,27 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { NavItem } from "@/@types/sidebar";
-import { FiPlusSquare, FiFolder } from "react-icons/fi";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "@hello-pangea/dnd";
+import { NavItem, ProjectsProps } from "@/@types/sidebar";
+import { FiFile, FiFolder } from "react-icons/fi";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { ProjectItem } from "./ProjectItem";
 
-interface ProjectsProps {
-  navConfig: NavItem[];
-  editingId: string | null;
-  setEditingId: (id: string | null) => void;
-  addNewProject: () => void;
-  addNewDirectory: () => void;
-  handleEdit: (slug: string, newLabel: string) => void;
-  handleKeyDown: (e: React.KeyboardEvent, slug: string) => void;
-  onDragEnd: (result: DropResult) => void;
-  onToggleFolder: (id: string, isOpen: boolean) => void;
-}
+const organizeItems = (items: NavItem[]) => {
+  const itemsByParent: { [key: string]: NavItem[] } = {};
+
+  items
+    .sort((a, b) => a.order - b.order)
+    .forEach((item) => {
+      const parentId = item.parentId || "root";
+      if (!itemsByParent[parentId]) {
+        itemsByParent[parentId] = [];
+      }
+      itemsByParent[parentId].push(item);
+    });
+
+  return itemsByParent;
+};
 
 const Projects = ({
   navConfig,
@@ -34,22 +33,6 @@ const Projects = ({
   onDragEnd,
   onToggleFolder,
 }: ProjectsProps) => {
-  const organizeItems = (items: NavItem[]) => {
-    const itemsByParent: { [key: string]: NavItem[] } = {};
-
-    items
-      .sort((a, b) => a.order - b.order)
-      .forEach((item) => {
-        const parentId = item.parentId || "root";
-        if (!itemsByParent[parentId]) {
-          itemsByParent[parentId] = [];
-        }
-        itemsByParent[parentId].push(item);
-      });
-
-    return itemsByParent;
-  };
-
   const renderDraggableItems = (
     items: NavItem[],
     parentId: string = "root",
@@ -116,6 +99,7 @@ const Projects = ({
   };
 
   const organizedItems = organizeItems(navConfig);
+  console.log(organizedItems);
   const rootItems = organizedItems["root"] || [];
 
   return (
@@ -123,7 +107,7 @@ const Projects = ({
       <div className="px-3 py-2 text-sm font-semibold text-gray-600 flex items-center gap-2">
         Projects
         <div className="ml-auto flex items-center gap-2">
-          <FiPlusSquare
+          <FiFile
             className="w-5 h-5 cursor-pointer hover:text-gray-800"
             onClick={addNewProject}
             title="Add new project"

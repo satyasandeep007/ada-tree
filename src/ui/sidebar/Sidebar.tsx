@@ -55,6 +55,7 @@ const Sidebar = () => {
       type: "folder",
       order,
       parentId: null,
+      isOpen: false,
     };
 
     try {
@@ -70,14 +71,6 @@ const Sidebar = () => {
     if (!item) return;
 
     try {
-      if (!newLabel.trim()) {
-        if (item.name === "New Project" || item.name === "New Folder") {
-          await fileTreeApi.deleteNode(item.id!);
-        }
-        setEditingId(null);
-        return;
-      }
-
       await fileTreeApi.updateNode(item.id!, { name: newLabel });
       setEditingId(null);
     } catch (error) {
@@ -91,54 +84,41 @@ const Sidebar = () => {
       handleEdit(slug, target.value);
     }
     if (e.key === "Escape") {
-      const item = navConfig.find((item) => item.slug === slug);
-      if (item?.name === "New Project" || item?.name === "New Folder") {
-        fileTreeApi.deleteNode(item.id!).catch(console.error);
-      }
       setEditingId(null);
     }
   };
 
   const handleDragEnd = async (result: DropResult) => {
-    const { destination, draggableId } = result;
+    const { destination, source, draggableId } = result;
 
     if (!destination) return;
 
     const draggedItem = navConfig.find((item) => item.slug === draggableId);
     if (!draggedItem || !draggedItem.id) return;
 
-    const previousConfig = [...navConfig];
+    const sourceParentId =
+      source.droppableId === "root" ? null : source.droppableId;
+    const destinationParentId =
+      destination.droppableId === "root" ? null : destination.droppableId;
+
+    if (
+      sourceParentId === destinationParentId &&
+      source.index === destination.index
+    ) {
+      return;
+    }
 
     try {
-      const itemsAtSameLevel = navConfig.filter((item) =>
-        destination.droppableId === "root"
-          ? item.parentId === null
-          : item.parentId === destination.droppableId
+      await fileTreeApi.updateNodeOrderAndParent(
+        draggedItem.id,
+        {
+          order: destination.index,
+          parentId: destinationParentId,
+        },
+        sourceParentId
       );
-
-      const filteredItems = itemsAtSameLevel.filter(
-        (item) => item.id !== draggedItem.id
-      );
-
-      filteredItems.splice(destination.index, 0, draggedItem);
-
-      const orderUpdates = filteredItems.map((item, index) => ({
-        id: item.id!,
-        order: index,
-      }));
-
-      await fileTreeApi.updateNodeOrderAndParent(draggedItem.id, {
-        order: destination.index,
-        parentId:
-          destination.droppableId === "root" ? null : destination.droppableId,
-      });
-
-      if (orderUpdates.length > 0) {
-        await fileTreeApi.batchUpdateOrder(orderUpdates);
-      }
     } catch (error) {
       console.error("Failed to update node positions:", error);
-      setNavConfig(previousConfig);
     }
   };
 

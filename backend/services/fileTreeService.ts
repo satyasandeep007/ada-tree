@@ -98,10 +98,6 @@ export class FileTreeService {
     })) as FileTreeNode[];
   }
 
-  async deleteNode(nodeId: string): Promise<void> {
-    await db.collection(this.collection).doc(nodeId).delete();
-  }
-
   async updateNodeOrder(nodeId: string, newOrder: number): Promise<void> {
     await this.updateNode(nodeId, { order: newOrder });
   }

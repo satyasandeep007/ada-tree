@@ -117,10 +117,6 @@ export const setupWebSocketConnection = (
           );
           break;
 
-        case "deleteNode":
-          await fileTreeService.deleteNode(payload.nodeId as string);
-          break;
-
         case "updateNodeOrderAndParent":
           await fileTreeService.updateNode(
             payload.id as string,

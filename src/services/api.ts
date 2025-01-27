@@ -144,16 +144,6 @@ class FileTreeWebSocket {
     this.sendMessage({ type: "toggleFolder", payload: { nodeId, isOpen } });
   }
 
-  deleteNode(nodeId: string) {
-    if (this.currentNodes && this.onUpdateCallback) {
-      const optimisticNodes = this.currentNodes.filter(
-        (node) => node.id !== nodeId
-      );
-      this.onUpdateCallback(optimisticNodes);
-    }
-    this.sendMessage({ type: "deleteNode", payload: { nodeId } });
-  }
-
   batchUpdateOrder(updates: { id: string; order: number }[]) {
     if (this.currentNodes && this.onUpdateCallback) {
       const optimisticNodes = [...this.currentNodes];
@@ -173,24 +163,62 @@ class FileTreeWebSocket {
 
   updateNodeOrderAndParent(
     nodeId: string,
-    updates: { order: number; parentId: string | null }
+    moveUpdates: { order: number; parentId: string | null },
+    sourceParentId: string | null
   ) {
     if (this.currentNodes && this.onUpdateCallback) {
       const optimisticNodes = this.currentNodes.map((node) => {
         if (node.id === nodeId) {
-          return { ...node, order: updates.order, parentId: updates.parentId };
+          return {
+            ...node,
+            order: moveUpdates.order,
+            parentId: moveUpdates.parentId,
+          };
         }
         return node;
       });
+
+      const movedNode = optimisticNodes.find((node) => node.id === nodeId);
+      if (!movedNode) return;
+
+      const destNodes = optimisticNodes.filter(
+        (node) => node.parentId === moveUpdates.parentId && node.id !== nodeId
+      );
+
+      const beforeNodes = destNodes.slice(0, moveUpdates.order);
+      const afterNodes = destNodes.slice(moveUpdates.order);
+
+      const updateOrders = (nodes: NavItem[], startOrder: number) => {
+        return nodes.map((node, index) => ({
+          id: node.id,
+          order: startOrder + index,
+        }));
+      };
+
+      const orderUpdates = [
+        ...updateOrders(beforeNodes, 0),
+        { id: nodeId, order: moveUpdates.order },
+        ...updateOrders(afterNodes, moveUpdates.order + 1),
+      ];
+
       this.skipNextUpdate = true;
       this.currentNodes = optimisticNodes;
       this.onUpdateCallback(optimisticNodes);
-    }
 
-    this.sendMessage({
-      type: "updateNodeOrderAndParent",
-      payload: { id: nodeId, updates },
-    });
+      this.sendMessage({
+        type: "updateNodeOrderAndParent",
+        payload: {
+          id: nodeId,
+          updates: {
+            order: moveUpdates.order,
+            parentId: moveUpdates.parentId,
+          },
+          orderUpdates,
+          sourceParentId,
+          destinationParentId: moveUpdates.parentId,
+        },
+      });
+    }
   }
 
   disconnect() {
