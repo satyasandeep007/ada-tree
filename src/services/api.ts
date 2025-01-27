@@ -149,23 +149,6 @@ class FileTreeWebSocket {
     this.sendMessage({ type: "toggleFolder", payload: { nodeId, isOpen } });
   }
 
-  batchUpdateOrder(updates: { id: string; order: number }[]) {
-    if (this.currentNodes && this.onUpdateCallback) {
-      const optimisticNodes = [...this.currentNodes];
-      updates.forEach(({ id, order }) => {
-        const index = optimisticNodes.findIndex((node) => node.id === id);
-        if (index !== -1) {
-          optimisticNodes[index] = { ...optimisticNodes[index], order };
-        }
-      });
-      this.skipNextUpdate = true;
-      this.currentNodes = optimisticNodes;
-      this.onUpdateCallback(optimisticNodes);
-    }
-
-    this.sendMessage({ type: "batchUpdateOrder", payload: { updates } });
-  }
-
   updateNodeOrderAndParent(
     nodeId: string,
     moveUpdates: { order: number; parentId: string | null },
