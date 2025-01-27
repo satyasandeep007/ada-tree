@@ -57,7 +57,7 @@ const Sidebar = () => {
       type: "folder",
       order,
       parentId: null,
-      isOpen: false,
+      isOpen: true,
     };
 
     try {

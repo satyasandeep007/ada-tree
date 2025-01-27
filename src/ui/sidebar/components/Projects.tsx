@@ -108,7 +108,6 @@ const Projects = ({
   };
 
   const organizedItems = organizeItems(navConfig);
-  console.log(organizedItems);
   const rootItems = organizedItems["root"] || [];
 
   return (
