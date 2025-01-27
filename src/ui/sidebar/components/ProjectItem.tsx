@@ -85,7 +85,7 @@ export const ProjectItem = ({
       {!editingId && item.id && (
         <FiEdit2
           className="w-4 h-4 opacity-0 group-hover:opacity-100 cursor-pointer hover:text-gray-800 transition-opacity"
-          onClick={() => setEditingId(item.id)}
+          onClick={() => setEditingId(item.id ?? null)}
         />
       )}
     </div>

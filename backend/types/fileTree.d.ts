@@ -1,21 +1,21 @@
 export interface FileTreeNode {
   id: string;
-  label: string;
-  type: "file" | "directory";
-  parentId: string | null;
+  workspaceId: string;
+  name: string;
+  type: "file" | "folder";
   order: number;
-  isOpen?: boolean;
+  parentId: string | null;
   icon?: string;
-  children?: FileTreeNode[];
+  isOpen?: boolean;
   createdAt: Date;
   updatedAt: Date;
-  workspaceId: string;
 }
 
-export interface UpdateFileTreeNode {
-  label?: string;
-  parentId?: string | null;
-  order?: number;
-  isOpen?: boolean;
-  icon?: string;
-}
+export type UpdateFileTreeNode = Partial<
+  Omit<FileTreeNode, "id" | "workspaceId" | "createdAt">
+>;
+
+export type CreateFileTreeNode = Omit<
+  FileTreeNode,
+  "id" | "createdAt" | "updatedAt"
+>;

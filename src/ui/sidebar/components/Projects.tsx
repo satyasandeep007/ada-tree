@@ -37,9 +37,6 @@ const Projects = ({
   const organizeItems = (items: NavItem[]) => {
     const itemsByParent: { [key: string]: NavItem[] } = {};
 
-    // Debug log
-    console.log("Organizing items:", items);
-
     items
       .sort((a, b) => a.order - b.order)
       .forEach((item) => {
@@ -50,8 +47,6 @@ const Projects = ({
         itemsByParent[parentId].push(item);
       });
 
-    // Debug log
-    console.log("Organized items:", itemsByParent);
     return itemsByParent;
   };
 
@@ -60,13 +55,9 @@ const Projects = ({
     parentId: string = "root",
     level = 0
   ) => {
-    // Debug log
-    console.log(`Rendering items for parent ${parentId}:`, items);
-    console.log(`Current level: ${level}`);
-
     return (
       <Droppable droppableId={parentId}>
-        {(provided, snapshot) => (
+        {(provided: any, snapshot: any) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
@@ -76,7 +67,6 @@ const Projects = ({
           >
             {items.map((item, index) => {
               const childItems = organizedItems[item.id!] || [];
-              console.log(`Child items for ${item.name}:`, childItems); // Debug log
 
               return (
                 <Draggable key={item.id} draggableId={item.id!} index={index}>
@@ -127,9 +117,6 @@ const Projects = ({
 
   const organizedItems = organizeItems(navConfig);
   const rootItems = organizedItems["root"] || [];
-
-  // Debug log
-  console.log("Root items:", rootItems);
 
   return (
     <div className="mt-8">

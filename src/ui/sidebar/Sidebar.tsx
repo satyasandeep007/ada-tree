@@ -15,13 +15,14 @@ const Sidebar = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const workspaceId = "satya";
 
-  const fetchFileTree = async () => {
-    const tree = await fileTreeApi.getTree(workspaceId);
-    setNavConfig(tree);
-  };
-
   useEffect(() => {
-    fetchFileTree();
+    const unsubscribe = fileTreeApi.subscribeToTree(workspaceId, (nodes) => {
+      setNavConfig(nodes);
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, [workspaceId]);
 
   const addNewProject = async () => {
@@ -37,8 +38,7 @@ const Sidebar = () => {
     };
 
     try {
-      const createdNode = await fileTreeApi.createNode(workspaceId, newNode);
-      await fetchFileTree();
+      const createdNode = await fileTreeApi.createNode(newNode);
       setEditingId(createdNode.id!);
     } catch (error) {
       console.error("Failed to create node:", error);
@@ -58,8 +58,7 @@ const Sidebar = () => {
     };
 
     try {
-      const createdNode = await fileTreeApi.createNode(workspaceId, newNode);
-      await fetchFileTree();
+      const createdNode = await fileTreeApi.createNode(newNode);
       setEditingId(createdNode.id!);
     } catch (error) {
       console.error("Failed to create node:", error);
@@ -74,14 +73,12 @@ const Sidebar = () => {
       if (!newLabel.trim()) {
         if (item.name === "New Project" || item.name === "New Folder") {
           await fileTreeApi.deleteNode(item.id!);
-          await fetchFileTree();
         }
         setEditingId(null);
         return;
       }
 
       await fileTreeApi.updateNode(item.id!, { name: newLabel });
-      await fetchFileTree();
       setEditingId(null);
     } catch (error) {
       console.error("Failed to update node:", error);
@@ -96,10 +93,7 @@ const Sidebar = () => {
     if (e.key === "Escape") {
       const item = navConfig.find((item) => item.slug === slug);
       if (item?.name === "New Project" || item?.name === "New Folder") {
-        fileTreeApi
-          .deleteNode(item.id!)
-          .then(() => fetchFileTree())
-          .catch(console.error);
+        fileTreeApi.deleteNode(item.id!).catch(console.error);
       }
       setEditingId(null);
     }
@@ -127,14 +121,11 @@ const Sidebar = () => {
       );
 
       filteredItems.splice(destination.index, 0, draggedItem);
-      console.log("filteredItems", filteredItems);
 
       const orderUpdates = filteredItems.map((item, index) => ({
         id: item.id!,
         order: index,
       }));
-
-      console.log("orderUpdates", orderUpdates);
 
       await fileTreeApi.updateNodeOrderAndParent(draggedItem.id, {
         order: destination.index,
@@ -145,8 +136,6 @@ const Sidebar = () => {
       if (orderUpdates.length > 0) {
         await fileTreeApi.batchUpdateOrder(orderUpdates);
       }
-
-      await fetchFileTree();
     } catch (error) {
       console.error("Failed to update node positions:", error);
       setNavConfig(previousConfig);
@@ -156,9 +145,8 @@ const Sidebar = () => {
   const handleToggleFolder = async (nodeId: string, isOpen: boolean) => {
     try {
       await fileTreeApi.toggleFolderState(nodeId, isOpen);
-      await fetchFileTree();
     } catch (error) {
-      console.error("Failed to toggle folder state:", error);
+      console.error("Failed to toggle folder:", error);
     }
   };
 

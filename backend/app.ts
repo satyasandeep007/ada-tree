@@ -1,16 +1,23 @@
 import express from "express";
 import cors from "cors";
-import fileTreeRoutes from "./routes/fileTreeRoute";
+import http from "http";
+import { initializeWebSocketServer } from "./websocket/server";
 
 const app = express();
+const server = http.createServer(app);
 
-app.use(cors());
-app.use(express.json());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:3001",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Upgrade", "Connection"],
+    credentials: true,
+  })
+);
 
-app.use("/api/file-trees", fileTreeRoutes);
+initializeWebSocketServer(server);
 
 const PORT = process.env.PORT || 9292;
-
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
