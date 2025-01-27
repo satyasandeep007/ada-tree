@@ -33,5 +33,3 @@ Frontend will run on port 3000.
 - @hello-pangea/dnd
 - Express
 - WebSocket
-
-## Video: [https://youtu.be/63-2OzpL-4I](https://youtu.be/63-2OzpL-4I)
